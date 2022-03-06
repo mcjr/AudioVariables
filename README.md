@@ -1,4 +1,4 @@
-# AudioVariable
+# AudioVariables
 
 Simplest audio player allowing configuration of speed and pitch.
 
