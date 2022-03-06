@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4C4D7AC927D4E8B4002B4CA6 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 4C4D7AC827D4E8B4002B4CA6 /* README.md */; };
 		4CCB327027D4975F002F5EDA /* AudioVariablesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCB326F27D4975F002F5EDA /* AudioVariablesApp.swift */; };
 		4CCB327227D4975F002F5EDA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCB327127D4975F002F5EDA /* ContentView.swift */; };
 		4CCB327427D49760002F5EDA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CCB327327D49760002F5EDA /* Assets.xcassets */; };
@@ -14,6 +15,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4C4D7AC827D4E8B4002B4CA6 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4CCB326C27D4975F002F5EDA /* AudioVariables.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudioVariables.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4CCB326F27D4975F002F5EDA /* AudioVariablesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVariablesApp.swift; sourceTree = "<group>"; };
 		4CCB327127D4975F002F5EDA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -36,6 +38,7 @@
 		4CCB326327D4975E002F5EDA = {
 			isa = PBXGroup;
 			children = (
+				4C4D7AC827D4E8B4002B4CA6 /* README.md */,
 				4CCB326E27D4975F002F5EDA /* AudioVariables */,
 				4CCB326D27D4975F002F5EDA /* Products */,
 			);
@@ -127,6 +130,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C4D7AC927D4E8B4002B4CA6 /* README.md in Resources */,
 				4CCB327727D49760002F5EDA /* Preview Assets.xcassets in Resources */,
 				4CCB327427D49760002F5EDA /* Assets.xcassets in Resources */,
 			);
