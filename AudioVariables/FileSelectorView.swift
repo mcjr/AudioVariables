@@ -17,7 +17,7 @@ struct FileSelectorView: View {
                 let panel = NSOpenPanel()
                 panel.allowsMultipleSelection = false
                 panel.canChooseDirectories = false
-                panel.allowedContentTypes = [.audio] // Nur Audio-Dateien
+                panel.allowedContentTypes = [.audio] // Only audio files
                 
                 if panel.runModal() == .OK {
                     filename = panel.url?.path ?? FileManager.default.homeDirectoryForCurrentUser.path
