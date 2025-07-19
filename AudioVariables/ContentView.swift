@@ -194,10 +194,10 @@ struct ContentView: View {
         playbackTimer?.invalidate()
         playbackTimer = nil
         
-        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
             if audioEngine.isPlaying {
                 // Consider speed changes
-                let increment = 0.05 * Double(speedValue)
+                let increment = 0.2 * Double(speedValue)
                 currentPlayTime += increment
                 
                 // Check if we have reached the end of the segment
@@ -249,7 +249,7 @@ struct ContentView: View {
     
     // MARK: - Display Timer
     private func startDisplayTimer() {
-        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+        displayTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             // Simulate spectrum data when audio is playing
             if audioEngine.isPlaying {
                 updateFrequencyData()

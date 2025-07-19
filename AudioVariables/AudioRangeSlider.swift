@@ -86,11 +86,18 @@ struct RangeSliderLabels: View {
                         .font(.caption2)
                         .foregroundColor(.red)
                 }
-                if isPlaying || currentPlayTime > 0 {
-                    Text("Playing: \(String(format: "%.1f", startTime + currentPlayTime))s")
-                        .font(.caption2)
-                        .foregroundColor(isPlaying ? .yellow : .orange)
+                // Reserve fixed space for playback position to prevent layout shifts
+                Group {
+                    if isPlaying || currentPlayTime > 0 {
+                        Text("Playing: \(String(format: "%.1f", startTime + currentPlayTime))s")
+                            .font(.caption2)
+                            .foregroundColor(isPlaying ? .yellow : .orange)
+                    } else {
+                        Text(" ") // Invisible placeholder to maintain consistent height
+                            .font(.caption2)
+                    }
                 }
+                .frame(height: 12) // Fixed height to prevent layout changes
             }
             
             Spacer()
