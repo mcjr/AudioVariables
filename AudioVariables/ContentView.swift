@@ -354,7 +354,7 @@ struct AudioRangeSlider: View {
 }
 
 struct ContentView: View {
-    @State private var filename         = "/Users/michael/Music/iTunes/iTunes Music/Music/B.B. King/Live At The BBC/14 The Thrill Is Gone (Live At The BBC _ 1989).m4a" // "<audiofile>"
+    @State private var filename         = "<audiofile>"
     @State private var showFileChooser  = false
     @State private var pitchEditing     = false
     @State private var pitchValue:Float = 1.0
