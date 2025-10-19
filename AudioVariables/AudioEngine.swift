@@ -125,7 +125,7 @@ class AudioEngine: ObservableObject {
             audioPlayer.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil) {
                 // This completion handler is called when the audio segment finishes playing
                 DispatchQueue.main.async {
-                    if self.loopingEnabled {
+                    if self.loopingEnabled && self.isPlaying {
                         self.handleLoopRestart()
                     } else {
                         self.stop()
@@ -176,23 +176,24 @@ class AudioEngine: ObservableObject {
     }
     
     func play() {
+        isPlaying = true
         if !engine.isRunning {
             try? engine.start()
         }        
         audioPlayer.play()
         startPlayTimeTracking()
-        isPlaying = true
     }
     
     func pause() {
+        isPlaying = false
         audioPlayer.pause()
         if engine.isRunning {
             engine.pause()
         }
-        isPlaying = false
     }
     
     func stop() {
+        isPlaying = false // Set this first to prevent loop restart
         audioPlayer.stop()
         if engine.isRunning {
             engine.stop()
@@ -200,7 +201,6 @@ class AudioEngine: ObservableObject {
         // Remove tap on stop
         engine.mainMixerNode.removeTap(onBus: 0)
         
-        isPlaying = false
         currentPlayTime = 0.0
         stopPlayTimeTracking()
     }
