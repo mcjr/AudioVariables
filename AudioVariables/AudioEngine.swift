@@ -11,6 +11,22 @@ class AudioEngine: ObservableObject {
     let audioPlayer = AVAudioPlayerNode()
     let speedControl = AVAudioUnitVarispeed()
     let pitchControl = AVAudioUnitTimePitch()
+
+    // Playback state
+    @Published var isPlaying = false
+    @Published var currentPlayTime: Double = 0.0
+    
+    // Loop settings
+    private var loopingEnabled = false
+    private var pauseBetweenLoops: Double = 0.0
+    private var uiUpdateTimer: Timer? // For UI position updates only
+    
+    // Audio segment settings
+    private var currentFileURL: URL?
+    private var currentFileSampleRate: Double = 44100.0
+    private var startTime: Double = 0.0
+    private var endTime: Double = 60.0
+    private var speedValue: Float = 1.0
     
     // Audio analysis variables
     private var fftSetup: FFTSetup?
@@ -38,29 +54,37 @@ class AudioEngine: ObservableObject {
         }
     }
     
-    func prepareEngine(_ url: URL, startTime: Double = 0, endTime: Double? = nil) -> AVAudioFile? {
+    func playSegment(_ url: URL,
+                               startTime: Double = 0,
+                               endTime: Double? = nil,
+                               shouldLoop: Bool = false,
+                               pauseBetweenLoops: Double = 0.0,
+                               resumeFromPosition: Double = 0.0) {
+        // Store current settings
+        self.currentFileURL = url
+        self.startTime = startTime
+        self.endTime = endTime ?? 60.0
+        self.loopingEnabled = shouldLoop
+        self.pauseBetweenLoops = pauseBetweenLoops
+        
+        // Determine actual start time (considering resume position)
+        let actualStartTime = max(startTime, resumeFromPosition)
+        
         do {
-            try loadAudioFile(url: url, startTime: startTime, endTime: endTime)
-            return try AVAudioFile(forReading: url)
+            try loadAudioFile(url: url, startTime: actualStartTime, endTime: endTime)
+            play()
+            startPlaybackTracking()
         } catch {
             print("Preparing engine failed: \(error)")
-            return nil
         }
     }
     
-    func loadAudioFile(url: URL, startTime: Double = 0, endTime: Double? = nil) throws {
+    private func loadAudioFile(url: URL, startTime: Double = 0, endTime: Double? = nil) throws {
         // Stop previous playback and clean up
         stop()
         
         // Remove old tap connection if present
         engine.mainMixerNode.removeTap(onBus: 0)
-        
-        // Stop engine if running
-        
-                // Stop engine if running
-        if engine.isRunning {
-            engine.stop()
-        }
         
         // Remove all nodes
         engine.detach(audioPlayer)
@@ -88,6 +112,7 @@ class AudioEngine: ObservableObject {
             
             // Calculate frame positions
             let sampleRate = file.fileFormat.sampleRate
+            currentFileSampleRate = sampleRate // Store for position calculations
             let startFrame = AVAudioFramePosition(startTime * sampleRate)
             let totalFrames = file.length
             
@@ -99,11 +124,17 @@ class AudioEngine: ObservableObject {
                 frameCount = AVAudioFrameCount(totalFrames - startFrame)
             }
             
-            // Schedule the segment
-            audioPlayer.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil)
-            
-            // Start engine
-            try engine.start()
+            // Schedule the segment with completion handler
+            audioPlayer.scheduleSegment(file, startingFrame: startFrame, frameCount: frameCount, at: nil) {
+                // This completion handler is called when the audio segment finishes playing
+                DispatchQueue.main.async {
+                    if self.loopingEnabled {
+                        self.handleLoopRestart()
+                    } else {
+                        self.stop()
+                    }
+                }
+            }
         } catch {
             print("Playing \(url) failed! Error: \(error)")
         }
@@ -148,11 +179,19 @@ class AudioEngine: ObservableObject {
     }
     
     func play() {
+        if !engine.isRunning {
+            try? engine.start()
+        }        
         audioPlayer.play()
+        isPlaying = true
     }
     
     func pause() {
         audioPlayer.pause()
+        if engine.isRunning {
+            engine.pause()
+        }
+        isPlaying = false
     }
     
     func stop() {
@@ -162,17 +201,133 @@ class AudioEngine: ObservableObject {
         }
         // Remove tap on stop
         engine.mainMixerNode.removeTap(onBus: 0)
+        
+        isPlaying = false
+        currentPlayTime = 0.0
+        stopPlaybackTracking()
     }
     
-    var isPlaying: Bool {
-        return audioPlayer.isPlaying
+    func setLoopingEnabled(enabled: Bool, pauseBetween: Double = 0.0) {
+        loopingEnabled = enabled
+        pauseBetweenLoops = pauseBetween
+    }
+    
+    func setSegmentRange(start: Double, end: Double) {
+        startTime = start
+        endTime = end
+    }
+    
+    func seekToPosition(_ relativePosition: Double) {
+        // Update current position immediately for UI responsiveness
+        currentPlayTime = relativePosition
+        
+        // Notify UI about position change
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("UpdatePlaybackPosition"),
+                object: relativePosition
+            )
+        }
+        
+        // If playing, restart from new position for precise seeking
+        if isPlaying, let url = currentFileURL {
+            let absoluteStartTime = startTime + relativePosition
+            playSegment(url, startTime: startTime, endTime: endTime, shouldLoop: loopingEnabled, pauseBetweenLoops: pauseBetweenLoops, resumeFromPosition: absoluteStartTime)
+        }
+    }
+    
+    // MARK: - Loop Management
+
+    private func handleLoopRestart() {
+        guard loopingEnabled, let url = currentFileURL else { return }
+        
+        if pauseBetweenLoops > 0 {
+            // Add pause between loops using DispatchQueue delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + pauseBetweenLoops) {
+                self.restartLoop(url: url)
+            }
+        } else {
+            // Immediate loop restart
+            restartLoop(url: url)
+        }
+    }
+    
+    private func restartLoop(url: URL) {
+        guard loopingEnabled else { return }
+        
+        // Hardware position will automatically reset with new audio segment
+        
+        // Schedule and play new segment
+        do {
+            try loadAudioFile(url: url, startTime: startTime, endTime: endTime)
+            play()
+            startPlaybackTracking()
+            
+            let segmentDuration = endTime - startTime
+            print("Loop restarted - Segment: \(String(format: "%.1f", segmentDuration))s, Pause: \(String(format: "%.1f", pauseBetweenLoops))s")
+        } catch {
+            print("Loop restart failed: \(error)")
+        }
+    }
+    
+    // MARK: - Playback Tracking
+    private func startPlaybackTracking() {
+        stopPlaybackTracking()
+        
+        // Lightweight timer for UI updates only - actual position comes from playerTime
+        uiUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
+            if self.isPlaying {
+                // Get precise position from audio hardware
+                let precisePosition = self.getCurrentPosition()
+                self.currentPlayTime = precisePosition
+                
+                // Check if we have reached the end of the segment
+                if precisePosition >= (self.endTime - self.startTime) {
+                    if self.loopingEnabled {
+                        // Event-based loop will be handled by completion handler
+                        return
+                    } else {
+                        self.stop()
+                    }
+                }
+            } else {
+                // Player is paused, stop tracking but keep time
+                self.stopPlaybackTracking()
+            }
+        }
+    }
+    
+    private func stopPlaybackTracking() {
+        uiUpdateTimer?.invalidate()
+        uiUpdateTimer = nil
+    }
+    
+    // MARK: - Position Tracking
+    private func getCurrentPosition() -> Double {
+        // Get precise hardware position from audio player
+        guard let nodeTime = audioPlayer.lastRenderTime,
+              let playerTime = audioPlayer.playerTime(forNodeTime: nodeTime) else {
+            return currentPlayTime // Fallback to last known position
+        }
+        
+        // Convert sample time to seconds
+        let positionInSeconds = Double(playerTime.sampleTime) / currentFileSampleRate
+        return positionInSeconds
     }
     
     func setSpeed(_ speed: Float) {
         speedControl.rate = speed
+        speedValue = speed // Store for tracking calculations
     }
     
     func setPitch(_ pitch: Float) {
         pitchControl.rate = pitch
+    }
+    
+    deinit {
+        stop()
+        if let setup = fftSetup {
+            vDSP_destroy_fftsetup(setup)
+        }
     }
 }

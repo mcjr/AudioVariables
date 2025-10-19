@@ -13,15 +13,11 @@ struct ContentView: View {
     @State private var speedValue: Float = 1.0
     @State private var startTime: Double = 0.0
     @State private var endTime: Double = 60.0
-    @State private var audioFile: AVAudioFile?
     @State private var isLooping = false
-    @State private var loopTimer: Timer?
     @State private var pauseBetweenLoops: Double = 0.0
     @State private var fileDurationInSeconds: Double = 300.0
     @State private var frequencyData: [Float] = Array(repeating: 0.0, count: 64)
     @State private var displayTimer: Timer?
-    @State private var currentPlayTime: Double = 0.0
-    @State private var playbackTimer: Timer?
     
     @StateObject private var audioEngine = AudioEngine()
     
@@ -40,9 +36,21 @@ struct ContentView: View {
                     onStop: stopAudio,
                     isPlaying: audioEngine.isPlaying,
                     isLooping: $isLooping,
-                    pauseBetweenLoops: $pauseBetweenLoops
+                    pauseBetweenLoops: $pauseBetweenLoops,
                 )
-                
+                .onChange(of: isLooping) { newValue in
+                    audioEngine.setLoopingEnabled(enabled: newValue, pauseBetween: pauseBetweenLoops)
+                }
+                .onChange(of: pauseBetweenLoops) { newValue in
+                    audioEngine.setLoopingEnabled(enabled: isLooping, pauseBetween: newValue)
+                }
+                .onChange(of: startTime) { _ in
+                    audioEngine.setSegmentRange(start: startTime, end: endTime)
+                }
+                .onChange(of: endTime) { _ in
+                    audioEngine.setSegmentRange(start: startTime, end: endTime)
+                }
+
                 // Spectrum Display
                 AudioSpectrumView(frequencyData: frequencyData)
                 
@@ -50,7 +58,7 @@ struct ContentView: View {
                 AudioRangeSlider(
                     startTime: $startTime,
                     endTime: $endTime,
-                    currentPlayTime: currentPlayTime,
+                    currentPlayTime: audioEngine.currentPlayTime,
                     fileDurationInSeconds: fileDurationInSeconds,
                     isPlaying: audioEngine.isPlaying
                 )
@@ -85,37 +93,29 @@ struct ContentView: View {
             return // Already playing
         }
         
-        let fileURL = URL(fileURLWithPath: filename)
-        
-        // If we have paused, continue playing from the current position
-        if currentPlayTime > 0 {
-            let resumeStartTime = startTime + currentPlayTime
-            audioFile = audioEngine.prepareEngine(fileURL, startTime: resumeStartTime, endTime: endTime)
-        } else {
-            // Start new segment from the beginning
-            audioFile = audioEngine.prepareEngine(fileURL, startTime: startTime, endTime: endTime)
-        }
-        
-        if let _ = audioFile {
+        // Use the new encapsulated method
+        if audioEngine.currentPlayTime > 0 {
+            // Resume from current position
             audioEngine.play()
-            startPlaybackTracking()
-            
-            if isLooping {
-                startLooping()
-            }
+        } else {
+            // Start new segment
+            let fileURL = URL(fileURLWithPath: filename)
+            audioEngine.playSegment(
+                fileURL,
+                startTime: startTime,
+                endTime: endTime,
+                shouldLoop: isLooping,
+                pauseBetweenLoops: pauseBetweenLoops
+            )
         }
     }
     
     private func pauseAudio() {
         audioEngine.pause()
-        // Only stop the loop timer, but keep the current position
-        stopLooping()
     }
     
     private func stopAudio() {
         audioEngine.stop()
-        stopPlaybackTracking()
-        stopLooping()
     }
     
     // MARK: - Setup and Cleanup
@@ -138,94 +138,17 @@ struct ContentView: View {
             queue: .main
         ) { notification in
             if let newRelativeTime = notification.object as? Double {
-                currentPlayTime = newRelativeTime
-                
-                // If audio is playing, jump to the new position
-                if audioEngine.isPlaying {
-                    let fileURL = URL(fileURLWithPath: filename)
-                    let newStartTime = startTime + newRelativeTime
-                    audioFile = audioEngine.prepareEngine(fileURL, startTime: newStartTime, endTime: endTime)
-                    audioEngine.play()
-                    startPlaybackTracking()
-                }
+                // Position update is now handled internally by AudioEngine
+                audioEngine.seekToPosition(newRelativeTime)
             }
         }
     }
     
     private func cleanup() {
         stopDisplayTimer()
-        stopPlaybackTracking()
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name("UpdateSpectrum"), object: nil)
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name("UpdatePlaybackPosition"), object: nil)
     }
-    
-    // MARK: - Loop Management
-    private func startLooping() {
-        stopLooping() // Stop previous timer
-        
-        let segmentDuration = endTime - startTime
-        let totalLoopDuration = segmentDuration + pauseBetweenLoops
-        
-        loopTimer = Timer.scheduledTimer(withTimeInterval: totalLoopDuration, repeats: true) { _ in
-            if isLooping { // Check if loop is still active
-                // Reset current time for new loop
-                currentPlayTime = 0.0
-                // Schedule and play new segment
-                let fileURL = URL(fileURLWithPath: filename)
-                audioFile = audioEngine.prepareEngine(fileURL, startTime: startTime, endTime: endTime)
-                audioEngine.play()
-                startPlaybackTracking() // Restart position tracking
-                
-                print("Loop restarted - Segment: \(String(format: "%.1f", segmentDuration))s, Pause: \(String(format: "%.1f", pauseBetweenLoops))s")
-            } else {
-                stopLooping()
-            }
-        }
-    }
-    
-    private func stopLooping() {
-        loopTimer?.invalidate()
-        loopTimer = nil
-    }
-    
-    // MARK: - Playback Tracking
-    private func startPlaybackTracking() {
-        // Only stop the timer, but keep currentPlayTime on resume
-        playbackTimer?.invalidate()
-        playbackTimer = nil
-        
-        playbackTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
-            if audioEngine.isPlaying {
-                // Consider speed changes
-                let increment = 0.2 * Double(speedValue)
-                currentPlayTime += increment
-                
-                // Check if we have reached the end of the segment
-                if currentPlayTime >= (endTime - startTime) {
-                    if isLooping {
-                        currentPlayTime = 0.0 // Reset for loop
-                        // Start new loop
-                        let fileURL = URL(fileURLWithPath: filename)
-                        audioFile = audioEngine.prepareEngine(fileURL, startTime: startTime, endTime: endTime)
-                        audioEngine.play()
-                    } else {
-                        stopPlaybackTracking()
-                    }
-                }
-            } else {
-                // Player is paused, but keep the time
-                playbackTimer?.invalidate()
-                playbackTimer = nil
-            }
-        }
-    }
-    
-    private func stopPlaybackTracking() {
-        playbackTimer?.invalidate()
-        playbackTimer = nil
-        currentPlayTime = 0.0
-    }
-    
     // MARK: - File Management
     private func loadFileDuration() {
         let fileURL = URL(fileURLWithPath: filename)

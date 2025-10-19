@@ -23,11 +23,11 @@ struct AudioControlsView: View {
             
             Button("Pause") {
                 onPause()
-            }
+            }.disabled(!isPlaying)
             
             Button("Stop") {
                 onStop()
-            }
+            }.disabled(!isPlaying)
             
             Button(isLooping ? "Loop: ON" : "Loop: OFF") {
                 isLooping.toggle()
