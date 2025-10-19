@@ -4,7 +4,6 @@
 //
 
 import AVFoundation
-import Accelerate
 
 class AudioEngine: ObservableObject {
     let engine = AVAudioEngine()
@@ -28,12 +27,6 @@ class AudioEngine: ObservableObject {
     private var currentFileSampleRate: Double = 44100.0
     private var startTime: Double = 0.0
     private var endTime: Double = 60.0
-    private var speedValue: Float = 1.0
-    
-    // Audio analysis variables
-    private var fftSetup: FFTSetup?
-    private var frequencyBuffer: [Float] = Array(repeating: 0.0, count: 1024)
-    private var magnitudes: [Float] = Array(repeating: 0.0, count: 512)
     
     init() {
         // Add nodes
@@ -45,11 +38,6 @@ class AudioEngine: ObservableObject {
         engine.connect(audioPlayer, to: speedControl, format: nil)
         engine.connect(speedControl, to: pitchControl, format: nil)
         engine.connect(pitchControl, to: engine.mainMixerNode, format: nil)
-        
-        // FFT setup for spectrum analysis
-        if fftSetup == nil {
-            fftSetup = vDSP_create_fftsetup(10, FFTRadix(kFFTRadix2)) // 2^10 = 1024 samples
-        }
     }
     
     func playSegment(_ url: URL,
@@ -309,7 +297,6 @@ class AudioEngine: ObservableObject {
     
     func setSpeed(_ speed: Float) {
         speedControl.rate = speed
-        speedValue = speed // Store for tracking calculations
     }
     
     func setPitch(_ pitch: Float) {
@@ -318,8 +305,5 @@ class AudioEngine: ObservableObject {
     
     deinit {
         stop()
-        if let setup = fftSetup {
-            vDSP_destroy_fftsetup(setup)
-        }
     }
 }

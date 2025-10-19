@@ -173,11 +173,11 @@ struct ContentView: View {
     // MARK: - Display Timer
     private func startDisplayTimer() {
         displayTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            // Simulate spectrum data when audio is playing
             if audioEngine.isPlaying {
+                // Light simulation fallback - real data comes from AudioEngine
                 updateFrequencyData()
             } else {
-                // Dampen the display when nothing is playing
+                // Smooth fade-out when not playing
                 for i in 0..<frequencyData.count {
                     frequencyData[i] *= 0.95
                 }
@@ -191,11 +191,11 @@ struct ContentView: View {
     }
     
     private func updateFrequencyData() {
-        // Simulated spectrum data only when no real data comes
-        // The real data now comes via NotificationCenter
+        // Fallback simulation when no real audio data is available
+        // Real spectrum data comes via NotificationCenter from AudioEngine
         for i in 0..<frequencyData.count {
-            let randomValue = Float.random(in: 0...20) // Reduced for less noise
-            frequencyData[i] = max(0, frequencyData[i] * 0.9 + randomValue * 0.1) // Mehr Smoothing, mindestens 0
+            let randomValue = Float.random(in: 0...10) // Reduced simulation intensity
+            frequencyData[i] = max(0, frequencyData[i] * 0.95 + randomValue * 0.05) // Less aggressive simulation
         }
     }
 }
