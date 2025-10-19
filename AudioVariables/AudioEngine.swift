@@ -12,14 +12,16 @@ class AudioEngine: ObservableObject {
     let speedControl = AVAudioUnitVarispeed()
     let pitchControl = AVAudioUnitTimePitch()
 
-    // Playback state
+    // Play state
     @Published var isPlaying = false
     @Published var currentPlayTime: Double = 0.0
-    
+
+    // play time tracking updates
+    private var playTimeTrackingTimer: Timer?
+
     // Loop settings
     private var loopingEnabled = false
     private var pauseBetweenLoops: Double = 0.0
-    private var uiUpdateTimer: Timer? // For UI position updates only
     
     // Audio segment settings
     private var currentFileURL: URL?
@@ -34,10 +36,6 @@ class AudioEngine: ObservableObject {
     private var magnitudes: [Float] = Array(repeating: 0.0, count: 512)
     
     init() {
-        setupEngine()
-    }
-    
-    private func setupEngine() {
         // Add nodes
         engine.attach(audioPlayer)
         engine.attach(speedControl)
@@ -73,7 +71,6 @@ class AudioEngine: ObservableObject {
         do {
             try loadAudioFile(url: url, startTime: actualStartTime, endTime: endTime)
             play()
-            startPlaybackTracking()
         } catch {
             print("Preparing engine failed: \(error)")
         }
@@ -183,6 +180,7 @@ class AudioEngine: ObservableObject {
             try? engine.start()
         }        
         audioPlayer.play()
+        startPlayTimeTracking()
         isPlaying = true
     }
     
@@ -204,7 +202,7 @@ class AudioEngine: ObservableObject {
         
         isPlaying = false
         currentPlayTime = 0.0
-        stopPlaybackTracking()
+        stopPlayTimeTracking()
     }
     
     func setLoopingEnabled(enabled: Bool, pauseBetween: Double = 0.0) {
@@ -255,13 +253,10 @@ class AudioEngine: ObservableObject {
     private func restartLoop(url: URL) {
         guard loopingEnabled else { return }
         
-        // Hardware position will automatically reset with new audio segment
-        
         // Schedule and play new segment
         do {
             try loadAudioFile(url: url, startTime: startTime, endTime: endTime)
             play()
-            startPlaybackTracking()
             
             let segmentDuration = endTime - startTime
             print("Loop restarted - Segment: \(String(format: "%.1f", segmentDuration))s, Pause: \(String(format: "%.1f", pauseBetweenLoops))s")
@@ -270,12 +265,12 @@ class AudioEngine: ObservableObject {
         }
     }
     
-    // MARK: - Playback Tracking
-    private func startPlaybackTracking() {
-        stopPlaybackTracking()
+    // MARK: - PlayTime Tracking
+    private func startPlayTimeTracking() {
+        stopPlayTimeTracking()
         
-        // Lightweight timer for UI updates only - actual position comes from playerTime
-        uiUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
+        // Lightweight timer for play time tracking - actual position comes from playerTime
+        playTimeTrackingTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
             if self.isPlaying {
                 // Get precise position from audio hardware
                 let precisePosition = self.getCurrentPosition()
@@ -292,27 +287,24 @@ class AudioEngine: ObservableObject {
                 }
             } else {
                 // Player is paused, stop tracking but keep time
-                self.stopPlaybackTracking()
+                self.stopPlayTimeTracking()
             }
         }
     }
     
-    private func stopPlaybackTracking() {
-        uiUpdateTimer?.invalidate()
-        uiUpdateTimer = nil
+    private func stopPlayTimeTracking() {
+        playTimeTrackingTimer?.invalidate()
+        playTimeTrackingTimer = nil
     }
     
-    // MARK: - Position Tracking
     private func getCurrentPosition() -> Double {
         // Get precise hardware position from audio player
         guard let nodeTime = audioPlayer.lastRenderTime,
               let playerTime = audioPlayer.playerTime(forNodeTime: nodeTime) else {
             return currentPlayTime // Fallback to last known position
         }
-        
         // Convert sample time to seconds
-        let positionInSeconds = Double(playerTime.sampleTime) / currentFileSampleRate
-        return positionInSeconds
+        return Double(playerTime.sampleTime) / currentFileSampleRate
     }
     
     func setSpeed(_ speed: Float) {
