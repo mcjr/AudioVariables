@@ -8,13 +8,7 @@ import AVKit
 import AVFoundation
 
 struct ContentView: View {
-    @State private var filename = "<audiofile>"
-    @State private var pitchValue: Float = 1.0
-    @State private var speedValue: Float = 1.0
-    @State private var startTime: Double = 0.0
-    @State private var endTime: Double = 60.0
-    @State private var isLooping = false
-    @State private var pauseBetweenLoops: Double = 0.0
+    @State private var settings = Settings()
     @State private var fileDurationInSeconds: Double = 300.0
     @State private var frequencyData: [Float] = Array(repeating: 0.0, count: 64)
     @State private var displayTimer: Timer?
@@ -26,7 +20,7 @@ struct ContentView: View {
         ScrollView {
             VStack(spacing: 20) {
                 // File Selector
-                FileSelectorView(filename: $filename) {
+                FileSelectorView(filename: $settings.filename) {
                     loadFileDuration()
                     saveSettings()
                 }
@@ -37,23 +31,23 @@ struct ContentView: View {
                     onPause: pauseAudio,
                     onStop: stopAudio,
                     isPlaying: audioEngine.isPlaying,
-                    isLooping: $isLooping,
-                    pauseBetweenLoops: $pauseBetweenLoops,
+                    isLooping: $settings.isLooping,
+                    pauseBetweenLoops: $settings.pauseBetweenLoops,
                 )
-                .onChange(of: isLooping) { newValue in
-                    audioEngine.setLoopingEnabled(enabled: newValue, pauseBetween: pauseBetweenLoops)
+                .onChange(of: settings.isLooping) { newValue in
+                    audioEngine.setLoopingEnabled(enabled: newValue, pauseBetween: settings.pauseBetweenLoops)
                     saveSettings()
                 }
-                .onChange(of: pauseBetweenLoops) { newValue in
-                    audioEngine.setLoopingEnabled(enabled: isLooping, pauseBetween: newValue)
+                .onChange(of: settings.pauseBetweenLoops) { newValue in
+                    audioEngine.setLoopingEnabled(enabled: settings.isLooping, pauseBetween: newValue)
                     saveSettings()
                 }
-                .onChange(of: startTime) { _ in
-                    audioEngine.setSegmentRange(start: startTime, end: endTime)
+                .onChange(of: settings.startTime) { _ in
+                    audioEngine.setSegmentRange(start: settings.startTime, end: settings.endTime)
                     saveSettings()
                 }
-                .onChange(of: endTime) { _ in
-                    audioEngine.setSegmentRange(start: startTime, end: endTime)
+                .onChange(of: settings.endTime) { _ in
+                    audioEngine.setSegmentRange(start: settings.startTime, end: settings.endTime)
                     saveSettings()
                 }
 
@@ -62,8 +56,8 @@ struct ContentView: View {
                 
                 // Range Slider
                 AudioRangeSlider(
-                    startTime: $startTime,
-                    endTime: $endTime,
+                    startTime: $settings.startTime,
+                    endTime: $settings.endTime,
                     currentPlayTime: audioEngine.currentPlayTime,
                     fileDurationInSeconds: fileDurationInSeconds,
                     isPlaying: audioEngine.isPlaying
@@ -71,8 +65,8 @@ struct ContentView: View {
                 
                 // Audio Effects
                 AudioEffectsView(
-                    speedValue: $speedValue,
-                    pitchValue: $pitchValue,
+                    speedValue: $settings.speed,
+                    pitchValue: $settings.pitch,
                     onSpeedChanged: { speed in
                         audioEngine.setSpeed(speed)
                         saveSettings()
@@ -109,13 +103,13 @@ struct ContentView: View {
             audioEngine.play()
         } else {
             // Start new segment
-            let fileURL = URL(fileURLWithPath: filename)
+            let fileURL = URL(fileURLWithPath: settings.filename)
             audioEngine.playSegment(
                 fileURL,
-                startTime: startTime,
-                endTime: endTime,
-                shouldLoop: isLooping,
-                pauseBetweenLoops: pauseBetweenLoops
+                startTime: settings.startTime,
+                endTime: settings.endTime,
+                shouldLoop: settings.isLooping,
+                pauseBetweenLoops: settings.pauseBetweenLoops
             )
         }
     }
@@ -163,45 +157,20 @@ struct ContentView: View {
     // MARK: - Settings Management
     
     private func loadSettings() {
-        let settings = settingsRepository.load()
-        
-        // Load filename if available
-        if let savedFilename = settings.filename, !savedFilename.isEmpty {
-            filename = savedFilename
-        }
-        
-        // Load time settings
-        startTime = settings.startTime
-        endTime = settings.endTime
-        
-        // Load looping settings
-        isLooping = settings.isLooping
-        pauseBetweenLoops = settings.pauseBetweenLoops
-        
-        // Load audio effect settings
-        speedValue = settings.speed
-        pitchValue = settings.pitch
+        settings = settingsRepository.load()
         
         // Apply loaded settings to audio engine
-        audioEngine.setSpeed(speedValue)
-        audioEngine.setPitch(pitchValue)
+        audioEngine.setSpeed(settings.speed)
+        audioEngine.setPitch(settings.pitch)
     }
     
     private func saveSettings() {
-        settingsRepository.save(
-            filename: filename,
-            startTime: startTime,
-            endTime: endTime,
-            isLooping: isLooping,
-            pauseBetweenLoops: pauseBetweenLoops,
-            speed: speedValue,
-            pitch: pitchValue
-        )
+        settingsRepository.save(settings)
     }
     
     // MARK: - File Management
     private func loadFileDuration() {
-        let fileURL = URL(fileURLWithPath: filename)
+        let fileURL = URL(fileURLWithPath: settings.filename)
         do {
             let file = try AVAudioFile(forReading: fileURL)
             let sampleRate = file.fileFormat.sampleRate
@@ -209,8 +178,8 @@ struct ContentView: View {
             fileDurationInSeconds = Double(totalFrames) / sampleRate
             
             // Adjust endTime if it's larger than the file length
-            if endTime > fileDurationInSeconds {
-                endTime = fileDurationInSeconds
+            if settings.endTime > fileDurationInSeconds {
+                settings.endTime = fileDurationInSeconds
             }
             
             print("File duration: \(String(format: "%.1f", fileDurationInSeconds))s")
