@@ -14,6 +14,7 @@
 		4CCB327227D4975F002F5EDA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCB327127D4975F002F5EDA /* ContentView.swift */; };
 		4CCB327427D49760002F5EDA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CCB327327D49760002F5EDA /* Assets.xcassets */; };
 		4CCB327727D49760002F5EDA /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CCB327627D49760002F5EDA /* Preview Assets.xcassets */; };
+		4CD4CE692EF2BD8C00F3AF9C /* SettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD4CE682EF2BD8C00F3AF9C /* SettingsRepository.swift */; };
 		4CDAE8B22E2C00C2003216F8 /* AudioRangeSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDAE8B12E2C00C2003216F8 /* AudioRangeSlider.swift */; };
 		4CDAE8B82E2C0274003216F8 /* AudioControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDAE8B32E2C0274003216F8 /* AudioControlsView.swift */; };
 		4CDAE8B92E2C0274003216F8 /* AudioEffectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDAE8B42E2C0274003216F8 /* AudioEffectsView.swift */; };
@@ -32,6 +33,7 @@
 		4CCB327327D49760002F5EDA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4CCB327627D49760002F5EDA /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		4CCB327827D49760002F5EDA /* AudioVariables.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AudioVariables.entitlements; sourceTree = "<group>"; };
+		4CD4CE682EF2BD8C00F3AF9C /* SettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRepository.swift; sourceTree = "<group>"; };
 		4CDAE8B12E2C00C2003216F8 /* AudioRangeSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRangeSlider.swift; sourceTree = "<group>"; };
 		4CDAE8B32E2C0274003216F8 /* AudioControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioControlsView.swift; sourceTree = "<group>"; };
 		4CDAE8B42E2C0274003216F8 /* AudioEffectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEffectsView.swift; sourceTree = "<group>"; };
@@ -73,14 +75,15 @@
 		4CCB326E27D4975F002F5EDA /* AudioVariables */ = {
 			isa = PBXGroup;
 			children = (
-				4CDAE8B12E2C00C2003216F8 /* AudioRangeSlider.swift */,
 				4CDAE8B32E2C0274003216F8 /* AudioControlsView.swift */,
-				4CDAE8B42E2C0274003216F8 /* AudioEffectsView.swift */,
 				4CDAE8B52E2C0274003216F8 /* AudioEngine.swift */,
+				4CDAE8B42E2C0274003216F8 /* AudioEffectsView.swift */,
+				4CDAE8B12E2C00C2003216F8 /* AudioRangeSlider.swift */,
 				4CDAE8B62E2C0274003216F8 /* AudioSpectrumView.swift */,
-				4CDAE8B72E2C0274003216F8 /* FileSelectorView.swift */,
 				4CCB326F27D4975F002F5EDA /* AudioVariablesApp.swift */,
 				4CCB327127D4975F002F5EDA /* ContentView.swift */,
+				4CDAE8B72E2C0274003216F8 /* FileSelectorView.swift */,
+				4CD4CE682EF2BD8C00F3AF9C /* SettingsRepository.swift */,
 				4CCB327327D49760002F5EDA /* Assets.xcassets */,
 				4CCB327827D49760002F5EDA /* AudioVariables.entitlements */,
 				4CCB327527D49760002F5EDA /* Preview Content */,
@@ -174,6 +177,7 @@
 				4CDAE8BA2E2C0274003216F8 /* AudioEngine.swift in Sources */,
 				4CDAE8BB2E2C0274003216F8 /* FileSelectorView.swift in Sources */,
 				4CDAE8BC2E2C0274003216F8 /* AudioSpectrumView.swift in Sources */,
+				4CD4CE692EF2BD8C00F3AF9C /* SettingsRepository.swift in Sources */,
 				4CCB327227D4975F002F5EDA /* ContentView.swift in Sources */,
 				4CDAE8B22E2C00C2003216F8 /* AudioRangeSlider.swift in Sources */,
 				4CCB327027D4975F002F5EDA /* AudioVariablesApp.swift in Sources */,

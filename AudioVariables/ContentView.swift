@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var displayTimer: Timer?
     
     @StateObject private var audioEngine = AudioEngine()
+    private let settingsRepository = SettingsRepository.shared
     
     var body: some View {
         ScrollView {
@@ -27,6 +28,7 @@ struct ContentView: View {
                 // File Selector
                 FileSelectorView(filename: $filename) {
                     loadFileDuration()
+                    saveSettings()
                 }
                 
                 // Audio Controls
@@ -40,15 +42,19 @@ struct ContentView: View {
                 )
                 .onChange(of: isLooping) { newValue in
                     audioEngine.setLoopingEnabled(enabled: newValue, pauseBetween: pauseBetweenLoops)
+                    saveSettings()
                 }
                 .onChange(of: pauseBetweenLoops) { newValue in
                     audioEngine.setLoopingEnabled(enabled: isLooping, pauseBetween: newValue)
+                    saveSettings()
                 }
                 .onChange(of: startTime) { _ in
                     audioEngine.setSegmentRange(start: startTime, end: endTime)
+                    saveSettings()
                 }
                 .onChange(of: endTime) { _ in
                     audioEngine.setSegmentRange(start: startTime, end: endTime)
+                    saveSettings()
                 }
 
                 // Spectrum Display
@@ -69,20 +75,24 @@ struct ContentView: View {
                     pitchValue: $pitchValue,
                     onSpeedChanged: { speed in
                         audioEngine.setSpeed(speed)
+                        saveSettings()
                     },
                     onPitchChanged: { pitch in
                         audioEngine.setPitch(pitch)
+                        saveSettings()
                     }
                 )
             }
             .padding(20)
         }
         .onAppear {
+            loadSettings()
             loadFileDuration()
             startDisplayTimer()
             setupNotificationObservers()
         }
         .onDisappear {
+            saveSettings()
             cleanup()
         }
     }
@@ -149,6 +159,46 @@ struct ContentView: View {
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name("UpdateSpectrum"), object: nil)
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name("UpdatePlaybackPosition"), object: nil)
     }
+    
+    // MARK: - Settings Management
+    
+    private func loadSettings() {
+        let settings = settingsRepository.load()
+        
+        // Load filename if available
+        if let savedFilename = settings.filename, !savedFilename.isEmpty {
+            filename = savedFilename
+        }
+        
+        // Load time settings
+        startTime = settings.startTime
+        endTime = settings.endTime
+        
+        // Load looping settings
+        isLooping = settings.isLooping
+        pauseBetweenLoops = settings.pauseBetweenLoops
+        
+        // Load audio effect settings
+        speedValue = settings.speed
+        pitchValue = settings.pitch
+        
+        // Apply loaded settings to audio engine
+        audioEngine.setSpeed(speedValue)
+        audioEngine.setPitch(pitchValue)
+    }
+    
+    private func saveSettings() {
+        settingsRepository.save(
+            filename: filename,
+            startTime: startTime,
+            endTime: endTime,
+            isLooping: isLooping,
+            pauseBetweenLoops: pauseBetweenLoops,
+            speed: speedValue,
+            pitch: pitchValue
+        )
+    }
+    
     // MARK: - File Management
     private func loadFileDuration() {
         let fileURL = URL(fileURLWithPath: filename)
