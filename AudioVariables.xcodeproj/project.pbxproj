@@ -77,10 +77,10 @@
 		4CCB326E27D4975F002F5EDA /* AudioVariables */ = {
 			isa = PBXGroup;
 			children = (
-				4CD4CE6C2EF2D8D100F3AF9C /* AudioFileSelectorView.swift */,
 				4CDAE8B32E2C0274003216F8 /* AudioControlsView.swift */,
 				4CDAE8B52E2C0274003216F8 /* AudioEngine.swift */,
 				4CDAE8B42E2C0274003216F8 /* AudioEffectsView.swift */,
+				4CD4CE6C2EF2D8D100F3AF9C /* AudioFileSelectorView.swift */,
 				4CDAE8B12E2C00C2003216F8 /* AudioRangeSlider.swift */,
 				4CDAE8B62E2C0274003216F8 /* AudioSpectrumView.swift */,
 				4CCB326F27D4975F002F5EDA /* AudioVariablesApp.swift */,
