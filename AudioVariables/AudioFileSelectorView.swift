@@ -7,7 +7,7 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-struct FileSelectorView: View {
+struct AudioFileSelectorView: View {
     @Binding var filename: String
     let onFileChanged: () -> Void
     
