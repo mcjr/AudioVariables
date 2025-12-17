@@ -39,18 +39,19 @@ struct AudioEffectsView: View {
             VStack {
                 Slider(
                     value: $pitchValue,
-                    in: 0.1...2.0
+                    in: -1200...1200,
+                    step: 100
                 ) {
                     Text("Pitch")
                 } minimumValueLabel: {
-                    Text("10%")
+                    Text("-12")
                 } maximumValueLabel: {
-                    Text("200%")
+                    Text("12")
                 } onEditingChanged: { editing in
                     pitchEditing = editing
                     onPitchChanged(pitchValue)
                 }
-                Text("\(String(format: "%.0f", pitchValue * 100))%")
+                Text("\(String(format: "%.0f Semitone", pitchValue / 100))")
                     .foregroundColor(pitchEditing ? .red : .blue)
             }
         }

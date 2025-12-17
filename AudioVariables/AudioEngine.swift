@@ -300,7 +300,8 @@ class AudioEngine: ObservableObject {
     }
     
     func setPitch(_ pitch: Float) {
-        pitchControl.rate = pitch
+        pitchControl.pitch = pitch
+        pitchControl.rate = 1.0
     }
     
     deinit {
