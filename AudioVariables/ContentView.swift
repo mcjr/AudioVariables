@@ -20,7 +20,7 @@ struct ContentView: View {
         ScrollView {
             VStack(spacing: 20) {
                 // File Selector
-                FileSelectorView(filename: $settings.filename) {
+                AudioFileSelectorView(filename: $settings.filename) {
                     loadFileDuration()
                     saveSettings()
                 }
