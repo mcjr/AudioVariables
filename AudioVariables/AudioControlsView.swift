@@ -13,9 +13,34 @@ struct AudioControlsView: View {
     
     @Binding var isLooping: Bool
     @Binding var pauseBetweenLoops: Double
+    @Binding var countInPhase: Double
     
     var body: some View {
         HStack {
+            VStack {
+                Text("Count-in phase")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                HStack {
+                    Text("0s")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                    Slider(
+                        value: $countInPhase,
+                        in: 0...10,
+                        step: 1.0
+                    )
+                    .frame(width: 80)
+                    Text("10s")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
+                Text("\(String(format: "%.0f", countInPhase))s")
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+            }
+            .frame(width: 120)
+            
             Button("Play") {
                 onPlay()
             }
@@ -34,7 +59,6 @@ struct AudioControlsView: View {
             }
             .foregroundColor(isLooping ? .green : .gray)
             
-            // Loop pause slider directly after the loop button
             VStack {
                 Text("Loop-Pause")
                     .font(.caption2)

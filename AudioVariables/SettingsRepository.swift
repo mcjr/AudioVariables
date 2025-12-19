@@ -20,7 +20,7 @@ class SettingsRepository {
             return Settings() // Return default settings
         }
         
-        print("Settings loaded: \(settings.filename), \(settings.startTime)s-\(settings.endTime)s, looping: \(settings.isLooping), pause: \(settings.pauseBetweenLoops)s, speed: \(settings.speed), pitch: \(settings.pitch)")
+        print("Settings loaded: \(settings.filename), count-in-phase: \(settings.countInPhase)s, \(settings.startTime)s-\(settings.endTime)s, looping: \(settings.isLooping), pause: \(settings.pauseBetweenLoops)s, speed: \(settings.speed), pitch: \(settings.pitch)")
         return settings
     }
     
@@ -31,6 +31,6 @@ class SettingsRepository {
         }
         
         defaults.set(data, forKey: settingsKey)
-        print("Settings saved: \(settings.filename), \(settings.startTime)s-\(settings.endTime)s, looping: \(settings.isLooping), pause: \(settings.pauseBetweenLoops)s, speed: \(settings.speed), pitch: \(settings.pitch)")
+        print("Settings saved: \(settings.filename), count-in-phase: \(settings.countInPhase)s, \(settings.startTime)s-\(settings.endTime)s, looping: \(settings.isLooping), loop-pause: \(settings.pauseBetweenLoops)s, speed: \(settings.speed), pitch: \(settings.pitch)")
     }
 }

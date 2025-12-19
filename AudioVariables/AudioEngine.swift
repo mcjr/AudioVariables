@@ -22,6 +22,10 @@ class AudioEngine: ObservableObject {
     private var loopingEnabled = false
     private var pauseBetweenLoops: Double = 0.0
     
+    // Count-in pause settings
+    private var countInPhase: Double = 0.0
+    private var countInTimer: Timer?
+    
     // Audio segment settings
     private var currentFileURL: URL?
     private var currentFileSampleRate: Double = 44100.0
@@ -45,6 +49,7 @@ class AudioEngine: ObservableObject {
                                endTime: Double? = nil,
                                shouldLoop: Bool = false,
                                pauseBetweenLoops: Double = 0.0,
+                               countInPhase: Double = 0.0,
                                resumeFromPosition: Double = 0.0) {
         // Store current settings
         self.currentFileURL = url
@@ -52,15 +57,25 @@ class AudioEngine: ObservableObject {
         self.endTime = endTime ?? 60.0
         self.loopingEnabled = shouldLoop
         self.pauseBetweenLoops = pauseBetweenLoops
+        self.countInPhase = countInPhase
         
         // Determine actual start time (considering resume position)
         let actualStartTime = max(startTime, resumeFromPosition)
         
-        do {
-            try loadAudioFile(url: url, startTime: actualStartTime, endTime: endTime)
-            play()
-        } catch {
-            print("Preparing engine failed: \(error)")
+        let startPlayback = {
+            do {
+                try self.loadAudioFile(url: url, startTime: actualStartTime, endTime: endTime)
+                self.play()
+            } catch {
+                print("Preparing engine failed: \(error)")
+            }
+        }
+        
+        // If count-in pause is set and we're not resuming, start countdown
+        if countInPhase > 0 && resumeFromPosition == 0.0 {
+            startCountIn(completion: startPlayback)
+        } else {
+            startPlayback()
         }
     }
     
@@ -182,6 +197,11 @@ class AudioEngine: ObservableObject {
     
     func stop() {
         isPlaying = false // Set this first to prevent loop restart
+        
+        // Stop count-in timer if running
+        countInTimer?.invalidate()
+        countInTimer = nil
+        
         audioPlayer.stop()
         if engine.isRunning {
             engine.stop()
@@ -218,8 +238,78 @@ class AudioEngine: ObservableObject {
         // If playing, restart from new position for precise seeking
         if isPlaying, let url = currentFileURL {
             let absoluteStartTime = startTime + relativePosition
-            playSegment(url, startTime: startTime, endTime: endTime, shouldLoop: loopingEnabled, pauseBetweenLoops: pauseBetweenLoops, resumeFromPosition: absoluteStartTime)
+            playSegment(url, startTime: startTime, endTime: endTime, shouldLoop: loopingEnabled, pauseBetweenLoops: pauseBetweenLoops, countInPhase: countInPhase, resumeFromPosition: absoluteStartTime)
         }
+    }
+    
+    // MARK: - Count-in Management
+    
+    private func startCountIn(completion: @escaping () -> Void) {
+        isPlaying = true  // Set playing state during countdown
+        var remainingSeconds = Int(countInPhase)
+        
+        // Play first beep immediately
+        playBeep()
+        
+        // Schedule timer for countdown
+        countInTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            
+            remainingSeconds -= 1
+            
+            if remainingSeconds > 0 {
+                // Play beep for each remaining second
+                self.playBeep()
+            } else {
+                // Countdown finished, stop timer and start playback
+                timer.invalidate()
+                self.countInTimer = nil
+                completion()
+            }
+        }
+    }
+    
+    private func playBeep() {
+        // Generate a short beep sound using AVAudioPlayerNode
+        let sampleRate = 44100.0
+        let duration = 0.1  // 100ms beep
+        let frequency = 880.0  // A5 note
+        
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!, frameCapacity: frameCount) else { return }
+        
+        buffer.frameLength = frameCount
+        
+        guard let channelData = buffer.floatChannelData?[0] else { return }
+        
+        // Generate sine wave
+        for frame in 0..<Int(frameCount) {
+            let value = sin(2.0 * .pi * frequency * Double(frame) / sampleRate)
+            // Apply envelope to avoid clicks
+            let envelope = sin(.pi * Double(frame) / Double(frameCount))
+            channelData[frame] = Float(value * envelope * 0.3) // 0.3 = volume
+        }
+        
+        // Create a temporary player for the beep
+        let beepPlayer = AVAudioPlayerNode()
+        engine.attach(beepPlayer)
+        engine.connect(beepPlayer, to: engine.mainMixerNode, format: buffer.format)
+        
+        beepPlayer.scheduleBuffer(buffer) {
+            // Clean up after beep finishes
+            DispatchQueue.main.async {
+                beepPlayer.stop()
+                self.engine.detach(beepPlayer)
+            }
+        }
+        
+        if !engine.isRunning {
+            try? engine.start()
+        }
+        beepPlayer.play()
     }
     
     // MARK: - Loop Management
@@ -241,7 +331,7 @@ class AudioEngine: ObservableObject {
     private func restartLoop(url: URL) {
         guard loopingEnabled else { return }
         
-        // Schedule and play new segment
+        // Schedule and play new segment (no count-in for loop restarts)
         do {
             try loadAudioFile(url: url, startTime: startTime, endTime: endTime)
             play()

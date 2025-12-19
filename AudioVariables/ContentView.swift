@@ -33,6 +33,7 @@ struct ContentView: View {
                     isPlaying: audioEngine.isPlaying,
                     isLooping: $settings.isLooping,
                     pauseBetweenLoops: $settings.pauseBetweenLoops,
+                    countInPhase: $settings.countInPhase
                 )
                 .onChange(of: settings.isLooping) { newValue in
                     audioEngine.setLoopingEnabled(enabled: newValue, pauseBetween: settings.pauseBetweenLoops)
@@ -40,6 +41,9 @@ struct ContentView: View {
                 }
                 .onChange(of: settings.pauseBetweenLoops) { newValue in
                     audioEngine.setLoopingEnabled(enabled: settings.isLooping, pauseBetween: newValue)
+                    saveSettings()
+                }
+                .onChange(of: settings.countInPhase) { _ in
                     saveSettings()
                 }
                 .onChange(of: settings.startTime) { _ in
@@ -109,7 +113,8 @@ struct ContentView: View {
                 startTime: settings.startTime,
                 endTime: settings.endTime,
                 shouldLoop: settings.isLooping,
-                pauseBetweenLoops: settings.pauseBetweenLoops
+                pauseBetweenLoops: settings.pauseBetweenLoops,
+                countInPhase: settings.countInPhase
             )
         }
     }
